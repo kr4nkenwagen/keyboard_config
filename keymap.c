@@ -1,4 +1,5 @@
 #include QMK_KEYBOARD_H
+#include "raw_hid.h"
 
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -179,3 +180,19 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         QK_MOUSE_BUTTON_2
   )
 };
+
+// k4-keymap: tell the computer which layer is on, as it changes ('K' '4' LAYER over raw HID, usage
+// page 0xFF60), and when it asks ("K4").
+static void k4_send_layer(uint8_t layer) {
+    uint8_t report[32] = {'K', '4', layer};
+    raw_hid_send(report, sizeof(report));
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    k4_send_layer(get_highest_layer(state));
+    return state;
+}
+
+void raw_hid_receive(uint8_t *data, uint8_t length) {
+    if (length >= 2 && data[0] == 'K' && data[1] == '4') k4_send_layer(get_highest_layer(layer_state));
+}
